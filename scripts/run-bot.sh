@@ -23,7 +23,7 @@ cd /srv/root
 # /scripts/await-service.sh $WRITE_DB_HOST $WRITE_DB_PORT $SERVICE_READINESS_TIMEOUT
 
 # ensure database exists
-/scripts/init-db.sh
+# /scripts/init-db.sh
 
 # run sql database migrations & seeds
 # /scripts/migrate-db.sh up
