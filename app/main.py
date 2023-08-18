@@ -3,6 +3,7 @@ import base64
 import os
 import ssl
 import sys
+import logging
 
 import discord
 from discord.ext import commands
@@ -18,6 +19,14 @@ from app.common import settings
 from app.adapters import database
 from app import state
 from app.constants import Privileges
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+    ],
+)
 
 
 class Bot(commands.Bot):
@@ -68,28 +77,61 @@ async def check_expired_supporters() -> None:
         user = await users.fetch_one_from_discord_id(member.id)
 
         if user is None:  # They are not in rosu database somehow, we will expire them.
+            logging.info(
+                "User %s (%d) with supporter role is not in rosu database, expiring them.",
+                member.name,
+                member.id,
+            )
             await member.remove_roles(rosu_supporter_role)
             await send_admin_log_embed(member, "just had their supporter role removed.")
             continue
 
         if user["privileges"] & Privileges.USER_DONOR:
+            logging.info(
+                "User %s (%d) is still a supporter, skipping.", member.name, member.id
+            )
             continue
 
+        logging.info(
+            "User %s (%d) is no longer a supporter, expiring them.",
+            member.name,
+            member.id,
+        )
         await member.remove_roles(rosu_supporter_role)
         await send_admin_log_embed(member, "just had their supporter role removed.")
 
     # Now check for the existing supporters in rosu database.
     for user in await users.fetch_all_supporters():
         if not user["discord_id"]:
+            logging.info(
+                "User %s (%d) is a supporter but does not have a discord id, skipping.",
+                user["username"],
+                user["id"],
+            )
             continue
 
         member = rosu_guild.get_member(user["discord_id"])  # type: ignore
         if not member:
+            logging.info(
+                "User %s (%d) is a supporter but not on discord, skipping.",
+                user["username"],
+                user["id"],
+            )
             continue
 
         if rosu_supporter_role in member.roles:
+            logging.info(
+                "User %s (%d) is still a supporter, skipping.",
+                user["username"],
+                user["id"],
+            )
             continue
 
+        logging.info(
+            "User %s (%d) is a supporter but does not have a supporter role, adding it.",
+            user["username"],
+            user["id"],
+        )
         await member.add_roles(rosu_supporter_role)
         await send_admin_log_embed(member, "just had their supporter role added.")
 
