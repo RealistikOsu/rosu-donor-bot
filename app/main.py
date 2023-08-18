@@ -3,8 +3,8 @@ import base64
 import os
 import ssl
 import sys
-import discord
 
+import discord
 from discord.ext import commands
 from discord.ext import tasks
 
@@ -16,6 +16,7 @@ sys.path.append(srv_root)
 from app.common import settings
 from app.adapters import database
 from app import state
+
 
 class Bot(commands.Bot):
     def __init__(self, *args, **kwargs):
@@ -33,6 +34,7 @@ intents.members = True
 intents.guilds = True
 
 bot = Bot(intents=intents)
+
 
 @bot.event
 async def on_ready() -> None:
