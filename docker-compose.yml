@@ -1,0 +1,27 @@
+version: "3.3"
+
+services:
+  ## shared/managed services
+
+  ## application services
+  rosu-donor-bot:
+    image: rosu-donor-bot:latest
+    environment:
+      - APP_ENV=${APP_ENV}
+      - APP_COMPONENT=${APP_COMPONENT}
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - READ_DB_SCHEME=${READ_DB_SCHEME}
+      - READ_DB_HOST=${READ_DB_HOST}
+      - READ_DB_PORT=${READ_DB_PORT}
+      - READ_DB_USER=${READ_DB_USER}
+      - READ_DB_PASS=${READ_DB_PASS}
+      - READ_DB_NAME=${READ_DB_NAME}
+      - READ_DB_USE_SSL=${READ_DB_USE_SSL}
+      - READ_DB_CA_CERTIFICATE=${READ_DB_CA_CERTIFICATE}
+      - INITIALLY_AVAILABLE_READ_DB=${INITIALLY_AVAILABLE_READ_DB}
+      - DB_POOL_MIN_SIZE=${DB_POOL_MIN_SIZE}
+      - DB_POOL_MAX_SIZE=${DB_POOL_MAX_SIZE}
+      - SERVICE_READINESS_TIMEOUT=${SERVICE_READINESS_TIMEOUT}
+    volumes:
+      - .:/srv/root
+      - ./scripts:/scripts
