@@ -16,7 +16,7 @@ class User(TypedDict):
     id: int
     username: str
     privileges: Privileges
-    discord_id: int | None
+    discord_id: str | None
 
 
 async def fetch_one_from_discord_id(discord_id: int) -> User | None:

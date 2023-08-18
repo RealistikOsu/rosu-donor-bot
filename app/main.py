@@ -114,7 +114,7 @@ async def check_expired_supporters() -> None:
             )
             continue
 
-        member = rosu_guild.get_member(user["discord_id"])  # type: ignore
+        member = rosu_guild.get_member(int(user["discord_id"]))  # type: ignore
         if not member:
             logging.info(
                 "User %s (%d) is a supporter but not on discord, skipping.",
