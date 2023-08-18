@@ -22,7 +22,7 @@ class User(TypedDict):
 async def fetch_one_from_discord_id(discord_id: int) -> User | None:
     query = f"""\
         SELECT {READ_PARAMS}
-        FROM `users` `u
+        FROM `users` `u`
         INNER JOIN `discord_oauth` `d`
         ON `u.id` = `d.user_id`
         WHERE `d.discord_id` = :discord_id
@@ -40,7 +40,7 @@ async def fetch_one_from_discord_id(discord_id: int) -> User | None:
 async def fetch_all_supporters() -> list[User]:
     query = f"""\
         SELECT {READ_PARAMS}
-        FROM `users` `u
+        FROM `users` `u`
         INNER JOIN `discord_oauth` `d`
         ON `u.id` = `d.user_id`
         WHERE `u.privileges` & {Privileges.USER_DONOR}
