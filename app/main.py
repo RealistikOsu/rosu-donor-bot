@@ -13,9 +13,11 @@ srv_root = os.path.join(os.path.dirname(__file__), "..")
 
 sys.path.append(srv_root)
 
+from app.repositories import users
 from app.common import settings
 from app.adapters import database
 from app import state
+from app.constants import Privileges
 
 
 class Bot(commands.Bot):
@@ -34,6 +36,66 @@ intents.members = True
 intents.guilds = True
 
 bot = Bot(intents=intents)
+
+
+async def send_admin_log_embed(
+    member: discord.Member | discord.User,
+    log: str,
+) -> None:
+    rosu_guild = bot.get_guild(settings.ROSU_DISCORD_GUILD_ID)
+    admin_logs_channel = rosu_guild.get_channel(  # type: ignore
+        settings.ROSU_DISCORD_ADMIN_LOGS_CHANNEL_ID,
+    )
+
+    if not admin_logs_channel:
+        return
+
+    embed = discord.Embed(
+        title="Automated donor bot log",
+        description=f"{member.mention} {log}",
+        color=4360181,
+    )
+    embed.set_footer(text="This is an automated action performed by the bot service.")
+    await admin_logs_channel.send(embed=embed)  # type: ignore
+
+
+@tasks.loop(hours=12)
+async def check_expired_supporters() -> None:
+    rosu_guild = bot.get_guild(settings.ROSU_DISCORD_GUILD_ID)
+    rosu_supporter_role = rosu_guild.get_role(settings.ROSU_DISCORD_DONOR_ROLE_ID)  # type: ignore
+
+    if not rosu_supporter_role:
+        return
+
+    # First check for the existing expired supporters on discord server.
+    for member in rosu_supporter_role.members:
+        user = await users.fetch_one_from_discord_id(member.id)
+
+        if user is None:  # They are not in rosu database somehow, we will expire them.
+            await member.remove_roles(rosu_supporter_role)
+            await send_admin_log_embed(member, "just had their supporter role removed.")
+            continue
+
+        if user["privileges"] & Privileges.USER_DONOR:
+            continue
+
+        await member.remove_roles(rosu_supporter_role)
+        await send_admin_log_embed(member, "just had their supporter role removed.")
+
+    # Now check for the existing supporters in rosu database.
+    for user in await users.fetch_all_supporters():
+        if not user["discord_id"]:
+            continue
+
+        member = rosu_guild.get_member(user["discord_id"])  # type: ignore
+        if not member:
+            continue
+
+        if rosu_supporter_role in member.roles:
+            continue
+
+        await member.add_roles(rosu_supporter_role)
+        await send_admin_log_embed(member, "just had their supporter role added.")
 
 
 @bot.event
@@ -61,6 +123,56 @@ async def on_ready() -> None:
     await state.read_database.connect()
 
     await bot.tree.sync()
+    check_expired_supporters.start()
+
+
+@bot.tree.command(
+    name="update",
+    description="Awards you your role rewards.",
+)
+async def update(interaction: discord.Interaction) -> None:
+    await interaction.response.defer(ephemeral=True)
+
+    supporter_role = interaction.guild.get_role(settings.ROSU_DISCORD_DONOR_ROLE_ID)  # type: ignore
+
+    if supporter_role in interaction.user.roles:  # type: ignore
+        await interaction.followup.send(
+            "You already have the supporter role!",
+            ephemeral=True,
+        )
+
+    user = await users.fetch_one_from_discord_id(interaction.user.id)  # type: ignore
+
+    if user is None:
+        await interaction.followup.send(
+            "You have not linked your Discord account to your RealistikOsu account yet.\n"
+            "You can do that here: https://ussr.pl/settings/discord-integration",
+            ephemeral=True,
+        )
+        return
+
+    if not user["privileges"] & Privileges.USER_DONOR and supporter_role in interaction.user.roles:  # type: ignore
+        await interaction.user.remove_roles(supporter_role)  # type: ignore
+        await send_admin_log_embed(
+            interaction.user,
+            "just had their supporter role removed.",
+        )
+        await interaction.followup.send(
+            "Your supporter role has been removed as you are no longer a supporter.",
+            ephemeral=True,
+        )
+        return
+
+    if not user["privileges"] & Privileges.USER_DONOR:
+        await interaction.followup.send(
+            "You are not a supporter on RealistikOsu.\n"
+            "You can become one here: https://ussr.pl/donate",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.user.add_roles(supporter_role)  # type: ignore
+    await send_admin_log_embed(interaction.user, "just had their supporter role added.")
 
 
 if __name__ == "__main__":
