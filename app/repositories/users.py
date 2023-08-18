@@ -1,8 +1,8 @@
 from typing import cast
 from typing import TypedDict
 
-from app.constants import Privileges
 from app import state
+from app.constants import Privileges
 
 READ_PARAMS = """\
     `u.id` AS `id`,
