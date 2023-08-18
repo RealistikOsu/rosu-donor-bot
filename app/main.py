@@ -39,7 +39,11 @@ class Bot(commands.Bot):
         )
 
 
-intents = discord.Intents.all()
+intents = discord.Intents.default()
+intents.presences = True
+intents.members = True
+intents.message_content = True
+
 bot = Bot(intents=intents)
 
 
