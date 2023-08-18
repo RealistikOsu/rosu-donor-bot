@@ -30,11 +30,7 @@ class Bot(commands.Bot):
         )
 
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.guilds = True
-
+intents = discord.Intents.all()
 bot = Bot(intents=intents)
 
 
@@ -51,7 +47,7 @@ async def send_admin_log_embed(
         return
 
     embed = discord.Embed(
-        title="Automated donor bot log",
+        title="Automated supporter bot log",
         description=f"{member.mention} {log}",
         color=4360181,
     )
@@ -134,13 +130,6 @@ async def update(interaction: discord.Interaction) -> None:
     await interaction.response.defer(ephemeral=True)
 
     supporter_role = interaction.guild.get_role(settings.ROSU_DISCORD_DONOR_ROLE_ID)  # type: ignore
-
-    if supporter_role in interaction.user.roles:  # type: ignore
-        await interaction.followup.send(
-            "You already have the supporter role!",
-            ephemeral=True,
-        )
-
     user = await users.fetch_one_from_discord_id(interaction.user.id)  # type: ignore
 
     if user is None:
@@ -171,8 +160,19 @@ async def update(interaction: discord.Interaction) -> None:
         )
         return
 
+    if supporter_role in interaction.user.roles:  # type: ignore
+        await interaction.followup.send(
+            "You already have the supporter role!",
+            ephemeral=True,
+        )
+        return
+
     await interaction.user.add_roles(supporter_role)  # type: ignore
     await send_admin_log_embed(interaction.user, "just had their supporter role added.")
+    await interaction.followup.send(
+        "Your supporter role has been added!",
+        ephemeral=True,
+    )
 
 
 if __name__ == "__main__":
