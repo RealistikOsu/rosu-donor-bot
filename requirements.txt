@@ -1,3 +1,5 @@
 databases[asyncmy]
 discord
 python-dotenv
+aiomysql
+asyncmy
