@@ -15,10 +15,6 @@ execDBStatement() {
     $SSL_ARGS
 }
 
-# await connected service availability
-/scripts/await-service.sh $READ_DB_HOST $READ_DB_PORT $SERVICE_READINESS_TIMEOUT
-/scripts/await-service.sh $WRITE_DB_HOST $WRITE_DB_PORT $SERVICE_READINESS_TIMEOUT
-
 FULL_TEST_DB_NAME="${WRITE_DB_NAME}_test"
 echo -e "\x1b[;93mRunning tests on '${FULL_TEST_DB_NAME}' database\x1b[m"
 
